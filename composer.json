@@ -1,0 +1,10 @@
+{
+  "name": "jtl/openapi-component-generator-php",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Jtl\\OpenApiComponentGenerator\\": "src/"
+    }
+  }
+}

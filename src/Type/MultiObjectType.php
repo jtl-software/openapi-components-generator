@@ -1,0 +1,76 @@
+<?php
+namespace Jtl\OpenApiComponentGenerator\Type;
+
+class MultiObjectType extends AbstractType
+{
+    const ONE_OF = 'oneOf';
+    const ANY_OF = 'anyOf';
+    const ALL_OF = 'allOf';
+
+    /**
+     * @var string[]
+     */
+    protected static $multiTypes = [
+        self::ONE_OF,
+        self::ANY_OF,
+        self::ALL_OF,
+    ];
+
+    /**
+     * @var string
+     */
+    protected $multiType;
+
+    /**
+     * @var AbstractType
+     */
+    protected $objectTypes = [];
+
+    /**
+     * MultiType constructor.
+     * @param string $multiType
+     * @throws \Exception
+     */
+    public function __construct(string $multiType)
+    {
+        if(!self::isMultiType($multiType)) {
+            throw new \Exception(sprintf('%s is not a multi type', $multiType));
+        }
+        $this->multiType = $multiType;
+    }
+
+    /**
+     * @return string
+     */
+    public function getOpenApiType(): string
+    {
+        return $this->multiType;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPhpType(): string
+    {
+        return '';
+    }
+
+    /**
+     * @param string $type
+     * @return boolean
+     */
+    public static function isMultiType(string $type): bool
+    {
+        return in_array($type, self::$multiTypes);
+    }
+
+    /**
+     * @param ObjectType $type
+     * @return MultiObjectType
+     */
+    public function addObjectType(ObjectType $type): MultiObjectType
+    {
+        $this->objectTypes[$type->getName()] = $type;
+        return $this;
+    }
+}
