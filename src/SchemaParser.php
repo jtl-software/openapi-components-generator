@@ -1,16 +1,16 @@
 <?php
 
-namespace Jtl\OpenApiComponentGenerator;
+namespace Jtl\OpenApiComponentsGenerator;
 
-use Jtl\OpenApiComponentGenerator\Type\AbstractFormatType;
-use Jtl\OpenApiComponentGenerator\Type\AbstractType;
-use Jtl\OpenApiComponentGenerator\Type\ObjectType;
-use Jtl\OpenApiComponentGenerator\Type\ArrayType;
-use Jtl\OpenApiComponentGenerator\Type\CombinedType;
-use Jtl\OpenApiComponentGenerator\Type\NamedObjectType;
-use Jtl\OpenApiComponentGenerator\Type\ObjectTypeProperty;
-use Jtl\OpenApiComponentGenerator\Type\SimpleObjectType;
-use Jtl\OpenApiComponentGenerator\Type\UnknownType;
+use Jtl\OpenApiComponentsGenerator\Type\AbstractFormatType;
+use Jtl\OpenApiComponentsGenerator\Type\AbstractType;
+use Jtl\OpenApiComponentsGenerator\Type\ObjectType;
+use Jtl\OpenApiComponentsGenerator\Type\ArrayType;
+use Jtl\OpenApiComponentsGenerator\Type\CombinedType;
+use Jtl\OpenApiComponentsGenerator\Type\NamedObjectType;
+use Jtl\OpenApiComponentsGenerator\Type\ObjectTypeProperty;
+use Jtl\OpenApiComponentsGenerator\Type\SimpleObjectType;
+use Jtl\OpenApiComponentsGenerator\Type\UnknownType;
 
 class SchemaParser
 {
@@ -41,7 +41,7 @@ class SchemaParser
     {
         $this->unknownType = new UnknownType();
         foreach (AbstractType::getBasicDataTypes() as $dataType) {
-            $typeClass = sprintf('Jtl\\OpenApiComponentGenerator\\Type\\%sType', ucfirst($dataType));
+            $typeClass = sprintf('Jtl\\OpenApiComponentsGenerator\\Type\\%sType', ucfirst($dataType));
             if (class_exists($typeClass)) {
                 $this->basicDataTypes[$dataType] = new $typeClass();
             }

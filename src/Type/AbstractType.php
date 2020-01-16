@@ -1,5 +1,5 @@
 <?php
-namespace Jtl\OpenApiComponentGenerator\Type;
+namespace Jtl\OpenApiComponentsGenerator\Type;
 
 abstract class AbstractType
 {

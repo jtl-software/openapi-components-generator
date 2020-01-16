@@ -1,4 +1,4 @@
-# OpenAPI Components generator
+# OpenAPI Components Generator
 
 This is a straight forward library for generating component classes, directly from an OpenApi schema.
 

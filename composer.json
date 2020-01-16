@@ -4,12 +4,12 @@
   "license": "MIT",
   "autoload": {
     "psr-4": {
-      "Jtl\\OpenApiComponentGenerator\\": "src/"
+      "Jtl\\OpenApiComponentsGenerator\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Jtl\\OpenApiComponentGenerator\\": "tests/src/"
+      "Jtl\\OpenApiComponentsGenerator\\": "tests/src/"
     }
   },
   "require-dev": {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Jtl\OpenApiComponentGenerator\Type;
+namespace Jtl\OpenApiComponentsGenerator\Type;
 
 class NamedObjectType extends ObjectType
 {

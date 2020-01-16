@@ -1,7 +1,7 @@
 <?php
-namespace Jtl\OpenApiComponentGenerator;
+namespace Jtl\OpenApiComponentsGenerator;
 
-use Jtl\OpenApiComponentGenerator\Type\AbstractType;
+use Jtl\OpenApiComponentsGenerator\Type\AbstractType;
 
 class Schema
 {

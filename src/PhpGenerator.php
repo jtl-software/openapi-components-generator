@@ -1,11 +1,11 @@
 <?php
-namespace Jtl\OpenApiComponentGenerator;
+namespace Jtl\OpenApiComponentsGenerator;
 
-use Jtl\OpenApiComponentGenerator\Type\AbstractFormatType;
-use Jtl\OpenApiComponentGenerator\Type\ArrayType;
-use Jtl\OpenApiComponentGenerator\Type\NamedObjectType;
-use Jtl\OpenApiComponentGenerator\Type\ObjectTypeProperty;
-use Jtl\OpenApiComponentGenerator\Type\StringType;
+use Jtl\OpenApiComponentsGenerator\Type\AbstractFormatType;
+use Jtl\OpenApiComponentsGenerator\Type\ArrayType;
+use Jtl\OpenApiComponentsGenerator\Type\NamedObjectType;
+use Jtl\OpenApiComponentsGenerator\Type\ObjectTypeProperty;
+use Jtl\OpenApiComponentsGenerator\Type\StringType;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\PhpFile;
 use Nette\PhpGenerator\PsrPrinter;
