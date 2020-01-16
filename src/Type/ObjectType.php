@@ -48,7 +48,7 @@ class ObjectType extends AbstractType
      */
     public function addProperty(ObjectTypeProperty $property): ObjectType
     {
-        if(!in_array($property, $this->properties, true)) {
+        if (!in_array($property, $this->properties, true)) {
             $this->properties[] = $property;
         }
         return $this;

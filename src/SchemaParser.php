@@ -132,8 +132,7 @@ class SchemaParser
         $requiredProperties = $data['required'] ?? [];
         $properties = $data['properties'] ?? [];
         foreach ($properties as $propertyName => $propertyData) {
-            $objectType->addProperty($this->instantiateProperty($propertyName, $propertyData, in_array($propertyName, $requiredProperties)));
-
+            $objectType->addProperty($this->instantiateProperty($propertyName, $propertyData, in_array($propertyName, $requiredProperties, true)));
         }
         return $objectType;
     }
@@ -207,7 +206,7 @@ class SchemaParser
                     }
                 }
 
-                if ($type instanceOf SimpleObjectType && isset($data['properties'])) {
+                if ($type instanceof SimpleObjectType && isset($data['properties'])) {
                     $type = $this->instantiateObjectType(new ObjectType(), $data);
                 }
                 break;
@@ -289,7 +288,7 @@ class SchemaParser
      */
     public function addRegexPattern(string $pattern): SchemaParser
     {
-        if (!in_array($pattern, $this->regexPatterns)) {
+        if (!in_array($pattern, $this->regexPatterns, true)) {
             $this->regexPatterns[] = $pattern;
         }
         return $this;

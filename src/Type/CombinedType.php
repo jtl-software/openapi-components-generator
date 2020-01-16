@@ -33,7 +33,7 @@ class CombinedType extends AbstractType
      */
     public function __construct(string $multiType)
     {
-        if(!self::isMultiType($multiType)) {
+        if (!self::isMultiType($multiType)) {
             throw new \Exception(sprintf('%s is not a multi type', $multiType));
         }
         $this->multiType = $multiType;
@@ -69,7 +69,7 @@ class CombinedType extends AbstractType
      */
     public function addElement(AbstractType $type): CombinedType
     {
-        if(!in_array($type, $this->elements, true)) {
+        if (!in_array($type, $this->elements, true)) {
             $this->elements[] = $type;
         }
         return $this;
@@ -99,6 +99,6 @@ class CombinedType extends AbstractType
      */
     public static function isMultiType(string $type): bool
     {
-        return in_array($type, self::$multiTypes);
+        return in_array($type, self::$multiTypes, true);
     }
 }

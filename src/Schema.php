@@ -8,7 +8,7 @@ class Schema
     /**
      * @var string
      */
-    protected $schemaUrl;
+    protected $apiSchemaPath;
 
     /**
      * @var string
@@ -22,13 +22,13 @@ class Schema
 
     /**
      * Schema constructor.
-     * @param string $schemaUrl
+     * @param string $apiSchemaPath
      * @param string $openApiVersion
      * @param AbstractType[] $components
      */
-    public function __construct(string $schemaUrl, string $openApiVersion, array $components)
+    public function __construct(string $apiSchemaPath, string $openApiVersion, array $components)
     {
-        $this->schemaUrl = $schemaUrl;
+        $this->apiSchemaPath = $apiSchemaPath;
         $this->openApiVersion = $openApiVersion;
         $this->setComponents($components);
     }
@@ -36,9 +36,9 @@ class Schema
     /**
      * @return string
      */
-    public function getSchemaUrl(): string
+    public function getApiSchemaPath(): string
     {
-        return $this->schemaUrl;
+        return $this->apiSchemaPath;
     }
 
     /**

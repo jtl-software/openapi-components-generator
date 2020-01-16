@@ -27,12 +27,12 @@ abstract class AbstractType
     /**
      * @return string
      */
-    public abstract function getOpenApiType(): string;
+    abstract public function getOpenApiType(): string;
 
     /**
      * @return string
      */
-    public abstract function getPhpType(): string;
+    abstract public function getPhpType(): string;
 
     /**
      * @return string[]
