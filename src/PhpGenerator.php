@@ -13,16 +13,11 @@ use Nette\PhpGenerator\PsrPrinter;
 class PhpGenerator
 {
     /**
-     * @var Schema
-     */
-    protected $schema;
-
-    /**
      * @param Schema $schema
      * @param string $destinationDir
      * @throws \Exception
      */
-    public static function generateClasses(Schema $schema, string $destinationDir): void
+    public static function writeClass(Schema $schema, string $destinationDir): void
     {
         $parentDir = dirname($destinationDir);
         if (!is_dir($parentDir)) {

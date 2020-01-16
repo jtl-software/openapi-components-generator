@@ -32,11 +32,10 @@ class SchemaParser
     /**
      * @var string[]
      */
-    protected $regexPatterns = [];
+    protected $filterPatterns = [];
 
     /**
      * SchemaParser constructor.
-     * @param string $namespace
      */
     public function __construct()
     {
@@ -55,7 +54,7 @@ class SchemaParser
      * @return Schema
      * @throws \Exception
      */
-    public function parse(string $apiSchemaPath, string $namespace = ''): Schema
+    public function read(string $apiSchemaPath, string $namespace = ''): Schema
     {
         $handle = fopen($apiSchemaPath, 'r');
         if (!$handle) {
@@ -80,7 +79,7 @@ class SchemaParser
 
         foreach ($schemaData['components']['schemas'] as $componentName => $componentData) {
             $found = true;
-            foreach ($this->regexPatterns as $pattern) {
+            foreach ($this->filterPatterns as $pattern) {
                 $found = false;
                 if (preg_match($pattern, $componentName) === 1) {
                     $found = true;
@@ -286,10 +285,10 @@ class SchemaParser
      * @param string $pattern
      * @return SchemaParser
      */
-    public function addRegexPattern(string $pattern): SchemaParser
+    public function addFilterPattern(string $pattern): SchemaParser
     {
-        if (!in_array($pattern, $this->regexPatterns, true)) {
-            $this->regexPatterns[] = $pattern;
+        if (!in_array($pattern, $this->filterPatterns, true)) {
+            $this->filterPatterns[] = $pattern;
         }
         return $this;
     }
