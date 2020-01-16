@@ -30,11 +30,6 @@ class SchemaParser
     protected $components = [];
 
     /**
-     * @var string
-     */
-    protected $namespace = '';
-
-    /**
      * @var string[]
      */
     protected $regexPatterns = [];
@@ -60,7 +55,7 @@ class SchemaParser
      * @return Schema
      * @throws \Exception
      */
-    public function read(string $apiSchemaPath, string $namespace = ''): Schema
+    public function parse(string $apiSchemaPath, string $namespace = ''): Schema
     {
         $handle = fopen($apiSchemaPath, 'r');
         if (!$handle) {
@@ -69,7 +64,6 @@ class SchemaParser
         $schemaData = json_decode(fread($handle, filesize($apiSchemaPath)), true);
         fclose($handle);
 
-        $this->namespace = $namespace;
         $this->components = [];
 
         if (!isset($schemaData['openapi'])) {
@@ -102,7 +96,7 @@ class SchemaParser
 
             switch ($type) {
                 case AbstractType::OBJECT:
-                    $this->components[$componentName] = new NamedObjectType($componentName);
+                    $this->components[$componentName] = new NamedObjectType($componentName, $namespace);
                     break;
                 case AbstractType::COMBINED:
                     $this->components[$componentName] = new CombinedType($this->determineMultiType($componentData));
@@ -217,6 +211,12 @@ class SchemaParser
 
             case AbstractType::UNKNOWN:
                 $type = $this->unknownType;
+                if (isset($data['$ref'])) {
+                    $componentName = $this->getComponentNameFromRef($data['$ref']);
+                    if (isset($this->components[$componentName])) {
+                        $type = $this->components[$componentName];
+                    }
+                }
                 break;
 
 

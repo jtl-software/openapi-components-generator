@@ -49,11 +49,37 @@ class ObjectTypeProperty
     }
 
     /**
+     * @return ObjectType
+     */
+    public function getParent(): ObjectType
+    {
+        return $this->parent;
+    }
+
+    /**
+     * @param ObjectType $parent
+     * @return ObjectTypeProperty
+     */
+    public function setParent(ObjectType $parent): ObjectTypeProperty
+    {
+        $this->parent = $parent;
+        return $this;
+    }
+
+    /**
      * @return string
      */
     public function getName(): string
     {
         return $this->name;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function hasDescription(): bool
+    {
+        return strlen($this->description) > 0;
     }
 
     /**

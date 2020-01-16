@@ -52,7 +52,7 @@ class CombinedType extends AbstractType
      */
     public function getPhpType(): string
     {
-        return '';
+        return 'object';
     }
 
     /**

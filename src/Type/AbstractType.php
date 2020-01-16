@@ -35,6 +35,14 @@ abstract class AbstractType
     abstract public function getPhpType(): string;
 
     /**
+     * @return boolean
+     */
+    public function hasPhpType(): bool
+    {
+        return !empty($this->getPhpType());
+    }
+
+    /**
      * @return string[]
      */
     public static function getBasicDataTypes(): array

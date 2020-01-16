@@ -30,11 +30,18 @@ class NamedObjectType extends ObjectType
      */
     public function getPhpType(): string
     {
-        $name = implode('', array_map('ucfirst', explode('_', $this->name)));
-        if (!empty($this->namespace)) {
-            return trim($this->namespace, '\\') . '\\' . $name;
+        return implode('', array_map('ucfirst', explode('_', $this->name)));
+    }
+
+    /**
+     * @return string
+     */
+    public function getFullQualifiedPhpType(): string
+    {
+        if ($this->hasNamespace()) {
+            return sprintf('%s\\%s', trim($this->namespace, '\\'), $this->getPhpType());
         }
-        return $name;
+        return $this->getPhpType();
     }
 
     /**
@@ -43,6 +50,14 @@ class NamedObjectType extends ObjectType
     public function getName(): string
     {
         return $this->name;
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasNamespace(): bool
+    {
+        return strlen($this->namespace) > 0;
     }
 
     /**
