@@ -1,7 +1,7 @@
 <?php
 namespace Jtl\OpenApiComponentGenerator\Type;
 
-class IntegerType extends AbstractType
+class IntegerType extends AbstractFormatType
 {
     /**
      * @return string

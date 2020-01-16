@@ -10,7 +10,8 @@ abstract class AbstractType
         BOOLEAN = 'boolean',
         ARRAY = 'array',
         OBJECT = 'object',
-        MULTI_OBJECT = 'multi_object'
+        COMBINED = 'combined',
+        UNKNOWN = 'unknown'
     ;
 
     /**

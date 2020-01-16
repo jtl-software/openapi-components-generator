@@ -9,14 +9,14 @@ class ObjectTypeProperty
     protected $name;
 
     /**
+     * @var string
+     */
+    protected $description = '';
+
+    /**
      * @var AbstractType
      */
     protected $type;
-
-    /**
-     * @var string
-     */
-    protected $format = '';
 
     /**
      * @var boolean
@@ -27,6 +27,11 @@ class ObjectTypeProperty
      * @var boolean
      */
     protected $readOnly = false;
+
+    /**
+     * @var mixed[]
+     */
+    protected $rawData = [];
 
     /**
      * ObjectTypeProperty constructor.
@@ -49,6 +54,24 @@ class ObjectTypeProperty
     public function getName(): string
     {
         return $this->name;
+    }
+
+    /**
+     * @return string
+     */
+    public function getDescription(): string
+    {
+        return $this->description;
+    }
+
+    /**
+     * @param string $description
+     * @return ObjectTypeProperty
+     */
+    public function setDescription(string $description): ObjectTypeProperty
+    {
+        $this->description = $description;
+        return $this;
     }
 
     /**
@@ -91,5 +114,23 @@ class ObjectTypeProperty
     public function isReadOnly(): bool
     {
         return $this->readOnly;
+    }
+
+    /**
+     * @return mixed[]
+     */
+    public function getRawData(): array
+    {
+        return $this->rawData;
+    }
+
+    /**
+     * @param mixed[] $rawData
+     * @return ObjectTypeProperty
+     */
+    public function setRawData(array $rawData): ObjectTypeProperty
+    {
+        $this->rawData = $rawData;
+        return $this;
     }
 }

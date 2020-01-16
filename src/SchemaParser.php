@@ -2,24 +2,32 @@
 
 namespace Jtl\OpenApiComponentGenerator;
 
+use Jtl\OpenApiComponentGenerator\Type\AbstractFormatType;
 use Jtl\OpenApiComponentGenerator\Type\AbstractType;
-use Jtl\OpenApiComponentGenerator\Type\ArrayType;
-use Jtl\OpenApiComponentGenerator\Type\MultiObjectType;
 use Jtl\OpenApiComponentGenerator\Type\ObjectType;
+use Jtl\OpenApiComponentGenerator\Type\ArrayType;
+use Jtl\OpenApiComponentGenerator\Type\CombinedType;
+use Jtl\OpenApiComponentGenerator\Type\NamedObjectType;
 use Jtl\OpenApiComponentGenerator\Type\ObjectTypeProperty;
 use Jtl\OpenApiComponentGenerator\Type\SimpleObjectType;
+use Jtl\OpenApiComponentGenerator\Type\UnknownType;
 
 class SchemaParser
 {
+    /**
+     * @var UnknownType
+     */
+    protected $unknownType;
+
     /**
      * @var array AbstractType[]
      */
     protected $basicDataTypes = [];
 
     /**
-     * @var ObjectType[]
+     * @var NamedObjectType[]
      */
-    protected $objectTypes = [];
+    protected $components = [];
 
     /**
      * @var string
@@ -33,10 +41,11 @@ class SchemaParser
 
     /**
      * SchemaParser constructor.
+     * @param string $namespace
      */
     public function __construct()
     {
-        $this->basicDataTypes = [];
+        $this->unknownType = new UnknownType();
         foreach (AbstractType::getBasicDataTypes() as $dataType) {
             $typeClass = sprintf('Jtl\\OpenApiComponentGenerator\\Type\\%sType', ucfirst($dataType));
             if (class_exists($typeClass)) {
@@ -46,121 +55,145 @@ class SchemaParser
     }
 
     /**
-     * @param string $schemaUrl
+     * @param string $apiSchemaPath
+     * @param string $namespace
      * @return Schema
      * @throws \Exception
      */
-    public function read(string $schemaUrl): Schema
+    public function read(string $apiSchemaPath, string $namespace = ''): Schema
     {
-        $handle = fopen($schemaUrl, 'r');
-
+        $handle = fopen($apiSchemaPath, 'r');
         if (!$handle) {
-            throw new \Exception(sprintf('%s not found', $schemaUrl));
+            throw new \Exception(sprintf('%s not found', $apiSchemaPath));
         }
-
+        $schemaData = json_decode(fread($handle, filesize($apiSchemaPath)), true);
         fclose($handle);
 
-        $schema = json_decode(file_get_contents($schemaUrl), true);
-        if (!isset($schema['openapi'])) {
+        $this->namespace = $namespace;
+        $this->components = [];
+
+        if (!isset($schemaData['openapi'])) {
             throw new \Exception('\'openapi\' property not found in schema');
         }
 
-        if (!version_compare($schema['openapi'], '3.0', '>=')) {
-            throw new \Exception(sprintf('Given OpenAPI version (%s) is not supported', $schema['openapi']));
+        if (!version_compare($schemaData['openapi'], '3.0', '>=')) {
+            throw new \Exception(sprintf('Given OpenAPI version (%s) is not supported', $schemaData['openapi']));
         }
 
-        if (!isset($schema['components']['schemas'])) {
+        if (!isset($schemaData['components']['schemas'])) {
             throw new \Exception('No components found');
         }
 
-        foreach ($schema['components']['schemas'] as $componentName => $componentData) {
+        foreach ($schemaData['components']['schemas'] as $componentName => $componentData) {
             $found = true;
-            foreach($this->regexPatterns as $pattern) {
+            foreach ($this->regexPatterns as $pattern) {
                 $found = false;
-                if(preg_match($pattern, $componentName) === 1) {
+                if (preg_match($pattern, $componentName) === 1) {
                     $found = true;
                     break;
                 }
             }
 
-            if($found === false) {
+            if ($found === false) {
                 continue;
             }
 
-            if (!isset($componentData['type'])) {
-                throw new \Exception(sprintf('Type missing in %s component', $componentName));
-            }
+            $type = $this->determineType($componentData);
 
-            switch ($componentData['type']) {
+            switch ($type) {
                 case AbstractType::OBJECT:
-                    $this->objectTypes[$componentName] = $this->createObjectType($componentName, $componentData);
+                    $this->components[$componentName] = new NamedObjectType($componentName);
+                    break;
+                case AbstractType::COMBINED:
+                    $this->components[$componentName] = new CombinedType($this->determineMultiType($componentData));
                     break;
             }
         }
 
-        return (new Schema($schemaUrl, $schema['openapi'], ...array_values($this->objectTypes)));
+        foreach ($this->components as $name => $component) {
+            if ($component instanceof NamedObjectType) {
+                $this->instantiateObjectType($component, $schemaData['components']['schemas'][$name]);
+            } elseif ($component instanceof CombinedType) {
+                $this->instantiateMultiType($component, $schemaData['components']['schemas'][$name][$component->getMultiType()]);
+            }
+        }
+
+        return (new Schema($apiSchemaPath, $schemaData['openapi'], $this->components));
     }
 
     /**
-     * @param string $name
+     * @param ObjectType $objectType
      * @param array $data
      * @return ObjectType
      * @throws \Exception
      */
-    protected function createObjectType(string $name, array $data): ObjectType
+    protected function instantiateObjectType(ObjectType $objectType, array $data): ObjectType
     {
-        $objectType = new ObjectType($name);
         $requiredProperties = $data['required'] ?? [];
         $properties = $data['properties'] ?? [];
         foreach ($properties as $propertyName => $propertyData) {
-            $objectType->setProperty($this->instantiateProperty($propertyName, $propertyData, in_array($propertyName, $requiredProperties)));
+            $objectType->addProperty($this->instantiateProperty($propertyName, $propertyData, in_array($propertyName, $requiredProperties)));
 
         }
         return $objectType;
     }
 
     /**
+     * @param CombinedType $type
+     * @param array $data
+     * @return CombinedType
+     * @throws \Exception
+     */
+    protected function instantiateMultiType(CombinedType $type, array $data): CombinedType
+    {
+        foreach ($data as $i => $valueData) {
+            if (isset($valueData['$ref'])) {
+                $componentName = $this->getComponentNameFromRef($valueData['$ref']);
+                if (isset($this->components[$componentName])) {
+                    $type->addElement($this->components[$componentName]);
+                }
+            } elseif (isset($valueData['type'])) {
+                $type->addElement($this->instantiateType($valueData));
+            }
+        }
+        return $type;
+    }
+
+    /**
      * @param string $name
      * @param array $data
      * @param bool $required
-     * @return ObjectType
+     * @return ObjectTypeProperty
      * @throws \Exception
      */
     protected function instantiateProperty(string $name, array $data, bool $required = false): ObjectTypeProperty
     {
-        if (isset($data['$ref']) && !isset($data['type'])) {
-            $data['type'] = AbstractType::OBJECT;
-        }
-
-        $mulitType = null;
-        if (!isset($data['type']) && (isset($data['allOf']) || isset($data['oneOf']) || isset($data['anyOf']))) {
-            $data['type'] = AbstractType::MULTI_OBJECT;
-            if(isset($data['allOf'])) {
-                $mulitType = 'allOf';
-            } elseif(isset($data['oneOf'])) {
-                $mulitType = 'oneOf';
-            } else {
-                $mulitType = 'anyOf';
-            }
-        }
-
-        if (!isset($data['type'])) {
-            throw new \Exception(sprintf('Type missing in object property (%s) data', $name));
-        }
-
+        $type = $this->instantiateType($data);
         $readOnly = isset($data['readOnly']) && $data['readOnly'] === true;
-        $format = $data['format'] ?? '';
+        $description = $data['description'] ?? '';
+
+        return (new ObjectTypeProperty($name, $type, $required, $readOnly))->setRawData($data)->setDescription($description);
+    }
+
+    /**
+     * @param array $data
+     * @return AbstractType
+     * @throws \Exception
+     */
+    protected function instantiateType(array $data): AbstractType
+    {
+        $typeName = $this->determineType($data);
+        $multiType = $this->determineMultiType($data);
 
         $type = null;
-        switch ($data['type']) {
+        switch ($typeName) {
             case AbstractType::ARRAY:
                 $itemsType = null;
-                if(isset($data['items']['$ref'])) {
+                if (isset($data['items']['$ref'])) {
                     $componentName = $this->getComponentNameFromRef($data['items']['$ref']);
-                    if (!isset($this->objectTypes[$componentName])) {
-                        $this->objectTypes[$componentName] = new ObjectType($componentName, $this->namespace);
+                    if (isset($this->components[$componentName])) {
+                        $itemsType = $this->components[$componentName];
                     }
-                    $itemsType = $this->objectTypes[$componentName];
                 }
                 $type = new ArrayType($itemsType);
                 break;
@@ -169,35 +202,72 @@ class SchemaParser
                 $type = new SimpleObjectType();
                 if (isset($data['$ref'])) {
                     $componentName = $this->getComponentNameFromRef($data['$ref']);
-                    if (!isset($this->objectTypes[$componentName])) {
-                        $this->objectTypes[$componentName] = new ObjectType($componentName, $this->namespace);
+                    if (isset($this->components[$componentName])) {
+                        $type = $this->components[$componentName];
                     }
-                    $type = $this->objectTypes[$componentName];
+                }
+
+                if ($type instanceOf SimpleObjectType && isset($data['properties'])) {
+                    $type = $this->instantiateObjectType(new ObjectType(), $data);
                 }
                 break;
 
-            case AbstractType::MULTI_OBJECT:
-                $type = new MultiObjectType($mulitType);
-                foreach ($data[$mulitType] as $i => $objRef) {
-                    if (isset($objRef['$ref'])) {
-                        $componentName = $this->getComponentNameFromRef($objRef['$ref']);
-                        if (!isset($this->objectTypes[$componentName])) {
-                            $this->objectTypes[$componentName] = new ObjectType($componentName, $this->namespace);
-                        }
-                        $type->addObjectType($this->objectTypes[$componentName]);
-                    }
-                }
+            case AbstractType::COMBINED:
+                $type = $this->instantiateMultiType(new CombinedType($multiType), $data[$multiType]);
                 break;
+
+            case AbstractType::UNKNOWN:
+                $type = $this->unknownType;
+                break;
+
 
             default:
-                if (!isset($this->basicDataTypes[$data['type']])) {
-                    throw new \Exception(sprintf('%s is not a basic data type!', $data['type']));
+                if (!isset($this->basicDataTypes[$typeName])) {
+                    throw new \Exception(sprintf('%s is not a basic data type!', $typeName));
                 }
-                $type = $this->basicDataTypes[$data['type']];
+
+                $type = clone $this->basicDataTypes[$typeName];
+                if ($type instanceof AbstractFormatType && isset($data['format'])) {
+                    $type->setFormat($data['format']);
+                }
                 break;
         }
 
-        return (new ObjectTypeProperty($name, $type, $required, $readOnly))->setFormat($format);
+        return $type;
+    }
+
+    /**
+     * @param mixed[] $data
+     * @return string
+     */
+    protected function determineType(array $data): string
+    {
+        $type = $data['type'] ?? AbstractType::UNKNOWN;
+        if (isset($data['$ref']) && !isset($data['type']) || isset($data['properties'])) {
+            $type = AbstractType::OBJECT;
+        } elseif ($type === AbstractType::UNKNOWN && (isset($data['allOf']) || isset($data['oneOf']) || isset($data['anyOf']))) {
+            $type = AbstractType::COMBINED;
+        }
+        return $type;
+    }
+
+    /**
+     * @param mixed[] $data
+     * @return string|null
+     */
+    protected function determineMultiType(array $data): ?string
+    {
+        $mulitType = null;
+        if (isset($data['allOf']) || isset($data['oneOf']) || isset($data['anyOf'])) {
+            if (isset($data['allOf'])) {
+                $mulitType = 'allOf';
+            } elseif (isset($data['oneOf'])) {
+                $mulitType = 'oneOf';
+            } else {
+                $mulitType = 'anyOf';
+            }
+        }
+        return $mulitType;
     }
 
     /**
@@ -213,9 +283,13 @@ class SchemaParser
         return substr($ref, ($lastSlashPos + 1));
     }
 
+    /**
+     * @param string $pattern
+     * @return SchemaParser
+     */
     public function addRegexPattern(string $pattern): SchemaParser
     {
-        if(!in_array($pattern, $this->regexPatterns)) {
+        if (!in_array($pattern, $this->regexPatterns)) {
             $this->regexPatterns[] = $pattern;
         }
         return $this;

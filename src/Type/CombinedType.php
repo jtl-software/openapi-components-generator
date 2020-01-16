@@ -1,7 +1,7 @@
 <?php
 namespace Jtl\OpenApiComponentGenerator\Type;
 
-class MultiObjectType extends AbstractType
+class CombinedType extends AbstractType
 {
     const ONE_OF = 'oneOf';
     const ANY_OF = 'anyOf';
@@ -22,9 +22,9 @@ class MultiObjectType extends AbstractType
     protected $multiType;
 
     /**
-     * @var AbstractType
+     * @var AbstractType[]
      */
-    protected $objectTypes = [];
+    protected $elements = [];
 
     /**
      * MultiType constructor.
@@ -56,21 +56,49 @@ class MultiObjectType extends AbstractType
     }
 
     /**
+     * @return string
+     */
+    public function getMultiType(): string
+    {
+        return $this->multiType;
+    }
+
+    /**
+     * @param AbstractType $type
+     * @return CombinedType
+     */
+    public function addElement(AbstractType $type): CombinedType
+    {
+        if(!in_array($type, $this->elements, true)) {
+            $this->elements[] = $type;
+        }
+        return $this;
+    }
+
+    /**
+     * @return AbstractType[]
+     */
+    public function getElements(): array
+    {
+        return $this->elements;
+    }
+
+    /**
+     * @param AbstractType ...$elements
+     * @return CombinedType
+     */
+    public function setElements(AbstractType ...$elements): CombinedType
+    {
+        $this->elements = $elements;
+        return $this;
+    }
+
+    /**
      * @param string $type
      * @return boolean
      */
     public static function isMultiType(string $type): bool
     {
         return in_array($type, self::$multiTypes);
-    }
-
-    /**
-     * @param ObjectType $type
-     * @return MultiObjectType
-     */
-    public function addObjectType(ObjectType $type): MultiObjectType
-    {
-        $this->objectTypes[$type->getName()] = $type;
-        return $this;
     }
 }

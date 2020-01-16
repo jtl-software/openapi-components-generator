@@ -1,7 +1,7 @@
 <?php
 namespace Jtl\OpenApiComponentGenerator;
 
-use Jtl\OpenApiComponentGenerator\Type\ObjectType;
+use Jtl\OpenApiComponentGenerator\Type\AbstractType;
 
 class Schema
 {
@@ -16,7 +16,7 @@ class Schema
     protected $openApiVersion;
 
     /**
-     * @var ObjectType[]
+     * @var AbstractType[]
      */
     protected $components = [];
 
@@ -24,13 +24,13 @@ class Schema
      * Schema constructor.
      * @param string $schemaUrl
      * @param string $openApiVersion
-     * @param ObjectType ...$components
+     * @param AbstractType[] $components
      */
-    public function __construct(string $schemaUrl, string $openApiVersion, ObjectType ...$components)
+    public function __construct(string $schemaUrl, string $openApiVersion, array $components)
     {
         $this->schemaUrl = $schemaUrl;
         $this->openApiVersion = $openApiVersion;
-        $this->components = $components;
+        $this->setComponents($components);
     }
 
     /**
@@ -50,7 +50,7 @@ class Schema
     }
 
     /**
-     * @return ObjectType[]
+     * @return AbstractType[]
      */
     public function getComponents(): array
     {
@@ -58,12 +58,25 @@ class Schema
     }
 
     /**
-     * @param ObjectType ...$components
+     * @param array $components
      * @return Schema
      */
-    public function setComponents(ObjectType ...$components): Schema
+    public function setComponents(array $components): Schema
     {
-        $this->components = $components;
+        foreach ($components as $name => $component) {
+            $this->setComponent($name, $component);
+        }
+        return $this;
+    }
+
+    /**
+     * @param string $name
+     * @param AbstractType $component
+     * @return Schema
+     */
+    public function setComponent(string $name, AbstractType $component): Schema
+    {
+        $this->components[$name] = $component;
         return $this;
     }
 }

@@ -1,15 +1,15 @@
 <?php
 namespace Jtl\OpenApiComponentGenerator\Type;
 
-class NumberType extends AbstractFormatType
+class UnknownType extends AbstractType
 {
     public function getOpenApiType(): string
     {
-        return self::NUMBER;
+        return '';
     }
 
     public function getPhpType(): string
     {
-        return 'float';
+        return '';
     }
 }
