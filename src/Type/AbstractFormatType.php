@@ -5,7 +5,8 @@ abstract class AbstractFormatType extends AbstractType
 {
     public const
         FORMAT_NONE = '',
-        FORMAT_DATETIME = 'date-time'
+        FORMAT_DATETIME = 'date-time',
+        FORMAT_UUID = 'uuid'
     ;
 
     /**

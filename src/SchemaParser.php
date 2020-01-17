@@ -62,7 +62,7 @@ class SchemaParser
         }
 
         $schemaData = json_decode($jsonString, true);
-        if(json_last_error() !== JSON_ERROR_NONE) {
+        if (json_last_error() !== JSON_ERROR_NONE) {
             throw new \Exception(sprintf('An error occured while decoding the json schema: %s', json_last_error_msg()));
         }
 
@@ -113,7 +113,7 @@ class SchemaParser
             }
         }
 
-        return (new Schema($apiSchemaPath, $schemaData['openapi'], $this->components));
+        return (new Schema($apiSchemaPath, $schemaData['openapi'], $this->components))->setNamespace($namespace);
     }
 
     /**

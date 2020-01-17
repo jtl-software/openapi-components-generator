@@ -9,6 +9,11 @@ class ObjectType extends AbstractType
     protected $properties = [];
 
     /**
+     * @var boolean
+     */
+    protected $abstract = false;
+
+    /**
      * @return string
      */
     public function getOpenApiType(): string
@@ -51,6 +56,24 @@ class ObjectType extends AbstractType
         if (!in_array($property, $this->properties, true)) {
             $this->properties[] = $property;
         }
+        return $this;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isAbstract(): bool
+    {
+        return $this->abstract;
+    }
+
+    /**
+     * @param bool $abstract
+     * @return ObjectType
+     */
+    public function setAbstract(bool $abstract): ObjectType
+    {
+        $this->abstract = $abstract;
         return $this;
     }
 }

@@ -16,6 +16,11 @@ class Schema
     protected $openApiVersion;
 
     /**
+     * @var string
+     */
+    protected $namespace = '';
+
+    /**
      * @var AbstractType[]
      */
     protected $components = [];
@@ -77,6 +82,24 @@ class Schema
     public function setComponent(string $name, AbstractType $component): Schema
     {
         $this->components[$name] = $component;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getNamespace(): string
+    {
+        return $this->namespace;
+    }
+
+    /**
+     * @param string $namespace
+     * @return Schema
+     */
+    public function setNamespace(string $namespace): Schema
+    {
+        $this->namespace = $namespace;
         return $this;
     }
 }

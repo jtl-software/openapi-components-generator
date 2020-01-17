@@ -16,12 +16,14 @@ use Nette\PhpGenerator\PsrPrinter;
 
 class PhpGenerator
 {
+    const PARENT_ENTITY_CLASS_NAME = 'AbstractEntity';
+
     /**
      * @param Schema $schema
      * @param string $destinationDir
      * @throws \Exception
      */
-    public function writeClass(Schema $schema, string $destinationDir): void
+    public function generateEntities(Schema $schema, string $destinationDir): void
     {
         $parentDir = dirname($destinationDir);
         if (!is_dir($parentDir)) {
@@ -32,29 +34,48 @@ class PhpGenerator
             mkdir($destinationDir);
         }
 
+        $parentObject = (new NamedObjectType(self::PARENT_ENTITY_CLASS_NAME, $schema->getNamespace()))->setAbstract(true);
+        $class = $this->createClassFromNamedObject($parentObject);
+        $this->writeClass($destinationDir, $parentObject->getNamespace(), $class);
         foreach ($schema->getComponents() as $component) {
             if ($component instanceof NamedObjectType) {
-                $file = (new PhpFile())
-                    ->addComment('This file is auto generated with the openapi3 component generator from JTL-Software');
-                $namespace = $file->addNamespace($component->getNamespace());
-                $class = $namespace->addClass($component->getPhpType());
-                $this->instantiateClassType($class, $component);
-                $classFile = sprintf('%s/%s.php', $destinationDir, $class->getName());
-                file_put_contents($classFile, (new PsrPrinter())->printFile($file));
+                $class = $this->createClassFromNamedObject($component, $parentObject->getFullQualifiedPhpType());
+                $this->writeClass($destinationDir, $component->getNamespace(), $class);
             }
         }
     }
 
     /**
+     * @param string $destinationDir
+     * @param string $namespace
      * @param ClassType $class
+     * @return boolean
+     */
+    protected function writeClass(string $destinationDir, string $namespace, ClassType $class): bool
+    {
+        $file = (new PhpFile())
+            ->addComment('This file is auto generated with the openapi3 component generator from JTL-Software');
+        $file->addNamespace($namespace)->add($class);
+        $classFile = sprintf('%s/%s.php', $destinationDir, $class->getName());
+        return file_put_contents($classFile, (new PsrPrinter())->printFile($file)) !== false;
+    }
+
+    /**
      * @param NamedObjectType $type
+     * @param string|null $extendsFrom
      * @return ClassType
      */
-    protected function instantiateClassType(ClassType $class, NamedObjectType $type): ClassType
+    protected function createClassFromNamedObject(NamedObjectType $type, string $extendsFrom = null): ClassType
     {
+        $class = (new ClassType($type->getPhpType()))->setAbstract($type->isAbstract());
+        if (!is_null($extendsFrom)) {
+            $class->setExtends($extendsFrom);
+        }
+
         foreach ($type->getProperties() as $property) {
             $this->addProperty($class, $type, $property);
         }
+        $this->addReadOnlyProperty($class, $type);
         return $class;
     }
 
@@ -92,19 +113,37 @@ class PhpGenerator
             ->setBody(sprintf('return $this->%s;', $property->getName()))
             ->setReturnType($dataType)
             ->addComment(sprintf('@return %s', $commentDataType))
-            ->setReturnNullable(is_null($defaultValue))
-        ;
+            ->setReturnNullable(is_null($defaultValue));
 
         $setMethod = $class->addMethod(sprintf('set%s', ucfirst($property->getName())))
             ->setBody(sprintf('$this->%s = $%s;%sreturn $this;', $property->getName(), $property->getName(), PHP_EOL))
             ->setReturnType($objectType->getFullQualifiedPhpType())
             ->addComment(sprintf('@param %s $%s', $commentDataType, $property->getName()))
-            ->addComment(sprintf('@return %s', $objectType->getPhpType()))
-        ;
+            ->addComment(sprintf('@return %s', $objectType->getPhpType()));
 
         $setParam = $setMethod->addParameter($property->getName())
-            ->setType($dataType)
-        ;
+            ->setType($dataType);
+    }
+
+    /**
+     * @param ClassType $class
+     * @param NamedObjectType $type
+     */
+    protected function addReadOnlyProperty(ClassType $class, NamedObjectType $type): void
+    {
+        $defaultValue = [];
+        foreach ($type->getProperties() as $property) {
+            if ($property->isReadOnly() && !in_array($property->getName(), $defaultValue, true)) {
+                $defaultValue[] = $property->getName();
+            }
+        }
+
+        $property = (new ObjectTypeProperty('readOnlyProperties', new ArrayType(new StringType())))->setDefaultValue($defaultValue);
+        $this->addProperty($class, $type, $property);
+
+        if ($type->getName() !== self::PARENT_ENTITY_CLASS_NAME) {
+            $class->removeMethod('setReadOnlyProperties')->removeMethod('getReadOnlyProperties');
+        }
     }
 
     /**
@@ -113,7 +152,7 @@ class PhpGenerator
      */
     protected function determineDefaultValue(ObjectTypeProperty $property)
     {
-        if($property->hasDefaultValue()) {
+        if ($property->hasDefaultValue()) {
             return $property->getDefaultValue();
         }
 
@@ -121,7 +160,9 @@ class PhpGenerator
         $type = $property->getType()->getPhpType();
         switch ($type) {
             case AbstractType::STRING:
-                $default = $property->getType()->getFormat() !== AbstractFormatType::FORMAT_DATETIME ? '' : null;
+                if (!in_array($property->getType()->getFormat(), [AbstractFormatType::FORMAT_DATETIME, AbstractFormatType::FORMAT_UUID], true)) {
+                    $default = '';
+                }
                 break;
             case AbstractType::ARRAY:
                 $default = [];

@@ -9,7 +9,14 @@ This is a straight forward library for generating classes from component schemas
  
 ### Usage
 ```php
-$parser = new \Jtl\OpenApiComponentGenerator\SchemaParser();
+<?php
+
+namespace My\Space;
+
+use Jtl\OpenApiComponentsGenerator\SchemaParser;
+use Jtl\OpenApiComponentsGenerator\PhpGenerator;
+
+$parser = new SchemaParser();
 
 //You can add regular expressions if you want to generate only specific components
 $parser->addFilterPattern('/foo|bar|yeeha$/');
@@ -21,5 +28,5 @@ $generator = new PhpGenerator();
 $destination = '/path/to/model/directory';
 
 //Generate component models in $destination
-$generator->writeClasses($schema, $destination);  
+$generator->generateEntities($schema, $destination);  
 ```
