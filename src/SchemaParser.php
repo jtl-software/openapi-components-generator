@@ -56,15 +56,17 @@ class SchemaParser
      */
     public function read(string $apiSchemaPath, string $namespace = ''): Schema
     {
-        $handle = fopen($apiSchemaPath, 'r');
-        if (!$handle) {
+        $jsonString = file_get_contents($apiSchemaPath);
+        if ($jsonString === false) {
             throw new \Exception(sprintf('%s not found', $apiSchemaPath));
         }
-        $schemaData = json_decode(fread($handle, filesize($apiSchemaPath)), true);
-        fclose($handle);
+
+        $schemaData = json_decode($jsonString, true);
+        if(json_last_error() !== JSON_ERROR_NONE) {
+            throw new \Exception(sprintf('An error occured while decoding the json schema: %s', json_last_error_msg()));
+        }
 
         $this->components = [];
-
         if (!isset($schemaData['openapi'])) {
             throw new \Exception('\'openapi\' property not found in schema');
         }
