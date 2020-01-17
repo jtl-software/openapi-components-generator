@@ -107,7 +107,7 @@ class SchemaParser
             if ($component instanceof NamedObjectType) {
                 $this->instantiateObjectType($component, $schemaData['components']['schemas'][$name]);
             } elseif ($component instanceof CombinedType) {
-                $this->instantiateMultiType($component, $schemaData['components']['schemas'][$name][$component->getMultiType()]);
+                $this->instantiateCombinedType($component, $schemaData['components']['schemas'][$name][$component->getMultiType()]);
             }
         }
 
@@ -136,7 +136,7 @@ class SchemaParser
      * @return CombinedType
      * @throws \Exception
      */
-    protected function instantiateMultiType(CombinedType $type, array $data): CombinedType
+    protected function instantiateCombinedType(CombinedType $type, array $data): CombinedType
     {
         foreach ($data as $i => $valueData) {
             if (isset($valueData['$ref'])) {
@@ -163,8 +163,14 @@ class SchemaParser
         $type = $this->instantiateType($data);
         $readOnly = isset($data['readOnly']) && $data['readOnly'] === true;
         $description = $data['description'] ?? '';
+        $defaultValue = $data['default'] ?? null;
+        $enum = $data['enum'] ?? [];
 
-        return (new ObjectTypeProperty($name, $type, $required, $readOnly))->setRawData($data)->setDescription($description);
+        return (new ObjectTypeProperty($name, $type, $required, $readOnly))
+            ->setRawData($data)
+            ->setDescription($description)
+            ->setDefaultValue($defaultValue)
+            ->setEnum($enum);
     }
 
     /**
@@ -175,7 +181,6 @@ class SchemaParser
     protected function instantiateType(array $data): AbstractType
     {
         $typeName = $this->determineType($data);
-        $multiType = $this->determineMultiType($data);
 
         $type = null;
         switch ($typeName) {
@@ -185,6 +190,11 @@ class SchemaParser
                     $componentName = $this->getComponentNameFromRef($data['items']['$ref']);
                     if (isset($this->components[$componentName])) {
                         $itemsType = $this->components[$componentName];
+                    }
+                } elseif (isset($data['items']['type']) && isset($this->basicDataTypes[$data['items']['type']])) {
+                    $itemsType = clone $this->basicDataTypes[$data['items']['type']];
+                    if ($itemsType instanceof AbstractFormatType && isset($data['items']['format'])) {
+                        $itemsType->setFormat($data['items']['format']);
                     }
                 }
                 $type = new ArrayType($itemsType);
@@ -205,7 +215,8 @@ class SchemaParser
                 break;
 
             case AbstractType::COMBINED:
-                $type = $this->instantiateMultiType(new CombinedType($multiType), $data[$multiType]);
+                $multiType = $this->determineMultiType($data);
+                $type = $this->instantiateCombinedType(new CombinedType($multiType), $data[$multiType]);
                 break;
 
             case AbstractType::UNKNOWN:
@@ -218,10 +229,9 @@ class SchemaParser
                 }
                 break;
 
-
             default:
                 if (!isset($this->basicDataTypes[$typeName])) {
-                    throw new \Exception(sprintf('%s is not a basic data type!', $typeName));
+                    throw new \Exception(sprintf('%s is not a basic data type', $typeName));
                 }
 
                 $type = clone $this->basicDataTypes[$typeName];

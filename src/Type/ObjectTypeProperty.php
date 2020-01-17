@@ -19,6 +19,16 @@ class ObjectTypeProperty
     protected $type;
 
     /**
+     * @var mixed
+     */
+    protected $defaultValue;
+
+    /**
+     * @var mixed[]
+     */
+    protected $enum = [];
+
+    /**
      * @var boolean
      */
     protected $required = false;
@@ -114,6 +124,58 @@ class ObjectTypeProperty
     public function getFormat(): string
     {
         return $this->format;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function hasDefaultValue(): bool
+    {
+        return !is_null($this->defaultValue);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getDefaultValue()
+    {
+        return $this->defaultValue;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isEnum(): bool
+    {
+        return count($this->enum) > 0;
+    }
+
+    /**
+     * @return mixed[]
+     */
+    public function getEnum(): array
+    {
+        return $this->enum;
+    }
+
+    /**
+     * @param mixed[] $enum
+     * @return ObjectTypeProperty
+     */
+    public function setEnum(array $enum): ObjectTypeProperty
+    {
+        $this->enum = $enum;
+        return $this;
+    }
+
+    /**
+     * @param mixed $defaultValue
+     * @return ObjectTypeProperty
+     */
+    public function setDefaultValue($defaultValue)
+    {
+        $this->defaultValue = $defaultValue;
+        return $this;
     }
 
     /**

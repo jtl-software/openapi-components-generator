@@ -1,6 +1,6 @@
 # OpenAPI Components Generator
 
-This is a straight forward library for generating component classes, directly from an OpenApi schema.
+This is a straight forward library for generating classes from component schemas inside an OpenAPI schema
 
 ### Supported 
 - OpenAPI versions: 3.x
@@ -14,7 +14,12 @@ $parser = new \Jtl\OpenApiComponentGenerator\SchemaParser();
 //You can add regular expressions if you want to generate only specific components
 $parser->addFilterPattern('/foo|bar|yeeha$/');
 
-$schema = $parser->read('https://path.to/schema/openapi.json', 'My\\Fancy\\Model\\Namespace');
+//Parse the components schemas
+$schema = $parser->read('https://path.to/schema/openapi3.json', 'My\\Fancy\\Model\\Namespace');
+
+$generator = new PhpGenerator();
 $destination = '/path/to/model/directory';
-PhpGenerator::writeClasses($schema, $destination); //Generate component models in $destination 
+
+//Generate component models in $destination
+$generator->writeClasses($schema, $destination);  
 ```

@@ -1,13 +1,17 @@
 <?php
+
 namespace Jtl\OpenApiComponentsGenerator;
 
 use Jtl\OpenApiComponentsGenerator\Type\AbstractFormatType;
+use Jtl\OpenApiComponentsGenerator\Type\AbstractType;
 use Jtl\OpenApiComponentsGenerator\Type\ArrayType;
 use Jtl\OpenApiComponentsGenerator\Type\NamedObjectType;
 use Jtl\OpenApiComponentsGenerator\Type\ObjectTypeProperty;
 use Jtl\OpenApiComponentsGenerator\Type\StringType;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\PhpFile;
+use Nette\PhpGenerator\PhpLiteral;
+use Nette\PhpGenerator\Property;
 use Nette\PhpGenerator\PsrPrinter;
 
 class PhpGenerator
@@ -17,7 +21,7 @@ class PhpGenerator
      * @param string $destinationDir
      * @throws \Exception
      */
-    public static function writeClass(Schema $schema, string $destinationDir): void
+    public function writeClass(Schema $schema, string $destinationDir): void
     {
         $parentDir = dirname($destinationDir);
         if (!is_dir($parentDir)) {
@@ -31,11 +35,10 @@ class PhpGenerator
         foreach ($schema->getComponents() as $component) {
             if ($component instanceof NamedObjectType) {
                 $file = (new PhpFile())
-                    ->addComment('This file is auto generated with the openapi3 component generator from JTL-Software')
-                ;
+                    ->addComment('This file is auto generated with the openapi3 component generator from JTL-Software');
                 $namespace = $file->addNamespace($component->getNamespace());
                 $class = $namespace->addClass($component->getPhpType());
-                self::instantiateClassType($class, $component);
+                $this->instantiateClassType($class, $component);
                 $classFile = sprintf('%s/%s.php', $destinationDir, $class->getName());
                 file_put_contents($classFile, (new PsrPrinter())->printFile($file));
             }
@@ -47,10 +50,10 @@ class PhpGenerator
      * @param NamedObjectType $type
      * @return ClassType
      */
-    protected static function instantiateClassType(ClassType $class, NamedObjectType $type): ClassType
+    protected function instantiateClassType(ClassType $class, NamedObjectType $type): ClassType
     {
         foreach ($type->getProperties() as $property) {
-            self::addProperty($class, $type, $property);
+            $this->addProperty($class, $type, $property);
         }
         return $class;
     }
@@ -60,8 +63,9 @@ class PhpGenerator
      * @param NamedObjectType $objectType
      * @param ObjectTypeProperty $property
      */
-    protected static function addProperty(ClassType $class, NamedObjectType $objectType, ObjectTypeProperty $property): void
+    protected function addProperty(ClassType $class, NamedObjectType $objectType, ObjectTypeProperty $property): void
     {
+        $defaultValue = $this->determineDefaultValue($property);
         $commentDataType = '';
         $dataType = null;
         if ($property->getType()->hasPhpType()) {
@@ -76,7 +80,9 @@ class PhpGenerator
             }
         }
 
-        $classProperty = $class->addProperty($property->getName());
+        $classProperty = $class->addProperty($property->getName(), $defaultValue)
+            ->setVisibility(ClassType::VISIBILITY_PROTECTED)
+            ->addComment(PHP_EOL);
         if ($property->hasDescription()) {
             $classProperty->addComment(sprintf('%s%s', $property->getDescription(), PHP_EOL));
         }
@@ -86,6 +92,7 @@ class PhpGenerator
             ->setBody(sprintf('return $this->%s;', $property->getName()))
             ->setReturnType($dataType)
             ->addComment(sprintf('@return %s', $commentDataType))
+            ->setReturnNullable(is_null($defaultValue))
         ;
 
         $setMethod = $class->addMethod(sprintf('set%s', ucfirst($property->getName())))
@@ -98,5 +105,29 @@ class PhpGenerator
         $setParam = $setMethod->addParameter($property->getName())
             ->setType($dataType)
         ;
+    }
+
+    /**
+     * @param ObjectTypeProperty $property
+     * @return mixed|null
+     */
+    protected function determineDefaultValue(ObjectTypeProperty $property)
+    {
+        if($property->hasDefaultValue()) {
+            return $property->getDefaultValue();
+        }
+
+        $default = null;
+        $type = $property->getType()->getPhpType();
+        switch ($type) {
+            case AbstractType::STRING:
+                $default = $property->getType()->getFormat() !== AbstractFormatType::FORMAT_DATETIME ? '' : null;
+                break;
+            case AbstractType::ARRAY:
+                $default = [];
+                break;
+        }
+
+        return $default;
     }
 }
