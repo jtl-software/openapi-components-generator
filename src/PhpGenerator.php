@@ -96,8 +96,8 @@ class PhpGenerator
             if ($property->getType() instanceof NamedObjectType) {
                 $dataType = $property->getType()->getFullQualifiedPhpType();
             } elseif ($property->getType() instanceof StringType && $property->getType()->getFormat() === AbstractFormatType::FORMAT_DATETIME) {
-                $dataType = 'DateTimeImmutable';
-                $commentDataType = '\DateTimeImmutable';
+                $dataType = 'DateTimeInterface';
+                $commentDataType = '\DateTimeInterface';
             } elseif ($property->getType() instanceof ArrayType && !is_null($property->getType()->getItemsType())) {
                 $commentDataType = sprintf('%s[]', $property->getType()->getItemsType()->getPhpType());
                 $dataType = $property->getType()->getItemsType()->getPhpType();
