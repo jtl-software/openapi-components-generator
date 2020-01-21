@@ -90,6 +90,7 @@ class PhpGenerator
         $defaultValue = $this->determineDefaultValue($property);
         $commentDataType = '';
         $dataType = null;
+        $isVariadic = false;
         if ($property->getType()->hasPhpType()) {
             $commentDataType = $dataType = $property->getType()->getPhpType();
             if ($property->getType() instanceof NamedObjectType) {
@@ -99,6 +100,11 @@ class PhpGenerator
                 $commentDataType = '\DateTimeImmutable';
             } elseif ($property->getType() instanceof ArrayType && !is_null($property->getType()->getItemsType())) {
                 $commentDataType = sprintf('%s[]', $property->getType()->getItemsType()->getPhpType());
+                $dataType = $property->getType()->getItemsType()->getPhpType();
+                $isVariadic = true;
+                if($property->getType()->getItemsType() instanceof NamedObjectType) {
+                    $dataType = $property->getType()->getItemsType()->getFullQualifiedPhpType();
+                }
             }
         }
 
@@ -120,10 +126,14 @@ class PhpGenerator
             ->setBody(sprintf('$this->%s = $%s;%sreturn $this;', $property->getName(), $property->getName(), PHP_EOL))
             ->setReturnType($objectType->getFullQualifiedPhpType())
             ->addComment(sprintf('@param %s $%s', $commentDataType, $property->getName()))
-            ->addComment(sprintf('@return %s', $objectType->getPhpType()));
+            ->addComment(sprintf('@return %s', $objectType->getPhpType()))
+            ->setVariadic($isVariadic)
+        ;
 
         $setParam = $setMethod->addParameter($property->getName())
-            ->setType($dataType);
+            ->setType($dataType)
+        ;
+
     }
 
     /**
@@ -151,6 +161,10 @@ class PhpGenerator
         ;
     }
 
+    /**
+     * @param ClassType $class
+     * @param NamedObjectType $type
+     */
     protected function addClassConstructor(ClassType $class, NamedObjectType $type): void
     {
         $readOnlyProperties = [];
