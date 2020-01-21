@@ -36,6 +36,7 @@ class PhpGenerator
 
         $parentObject = (new NamedObjectType(self::PARENT_ENTITY_CLASS_NAME, $schema->getNamespace()))->setAbstract(true);
         $class = $this->createClassFromNamedObject($parentObject);
+        $this->addClassPropertyReadOnly($class, $parentObject);
         $this->writeClass($destinationDir, $parentObject->getNamespace(), $class);
         foreach ($schema->getComponents() as $component) {
             if ($component instanceof NamedObjectType) {
@@ -72,10 +73,10 @@ class PhpGenerator
             $class->setExtends($extendsFrom);
         }
 
+        $this->addClassConstructor($class, $type);
         foreach ($type->getProperties() as $property) {
-            $this->addProperty($class, $type, $property);
+            $this->addClassProperty($class, $type, $property);
         }
-        $this->addReadOnlyProperty($class, $type);
         return $class;
     }
 
@@ -84,7 +85,7 @@ class PhpGenerator
      * @param NamedObjectType $objectType
      * @param ObjectTypeProperty $property
      */
-    protected function addProperty(ClassType $class, NamedObjectType $objectType, ObjectTypeProperty $property): void
+    protected function addClassProperty(ClassType $class, NamedObjectType $objectType, ObjectTypeProperty $property): void
     {
         $defaultValue = $this->determineDefaultValue($property);
         $commentDataType = '';
@@ -129,20 +130,47 @@ class PhpGenerator
      * @param ClassType $class
      * @param NamedObjectType $type
      */
-    protected function addReadOnlyProperty(ClassType $class, NamedObjectType $type): void
+    protected function addClassPropertyReadOnly(ClassType $class, NamedObjectType $type): void
     {
-        $defaultValue = [];
+        $property = (new ObjectTypeProperty('readOnlyProperties', new ArrayType(new StringType())))->setDefaultValue([]);
+        $this->addClassProperty($class, $type, $property);
+
+        $addMethod = $class->addMethod('addReadOnlyProperty')
+            ->addBody('if(!in_array($property, $this->readOnlyProperties, true)) {')
+            ->addBody('    $this->readOnlyProperties[] = $property;')
+            ->addBody('}')
+            ->addBody('return $this;')
+            ->setReturnType($type->getFullQualifiedPhpType())
+            ->setVisibility(ClassType::VISIBILITY_PUBLIC)
+            ->addComment('@param string $property')
+            ->addComment(sprintf('@return %s', $type->getPhpType()))
+        ;
+
+        $addParam = $addMethod->addParameter('property')
+            ->setType('string')
+        ;
+    }
+
+    protected function addClassConstructor(ClassType $class, NamedObjectType $type): void
+    {
+        $readOnlyProperties = [];
         foreach ($type->getProperties() as $property) {
-            if ($property->isReadOnly() && !in_array($property->getName(), $defaultValue, true)) {
-                $defaultValue[] = $property->getName();
+            if ($property->isReadOnly() && !in_array($property->getName(), $readOnlyProperties, true)) {
+                $readOnlyProperties[] = $property->getName();
             }
         }
 
-        $property = (new ObjectTypeProperty('readOnlyProperties', new ArrayType(new StringType())))->setDefaultValue($defaultValue);
-        $this->addProperty($class, $type, $property);
+        if(count($readOnlyProperties) > 0) {
+            $constructor = $class->addMethod('__construct')
+                ->setVisibility(ClassType::VISIBILITY_PUBLIC)
+                ->addComment('Constructor')
+            ;
 
-        if ($type->getName() !== self::PARENT_ENTITY_CLASS_NAME) {
-            $class->removeMethod('setReadOnlyProperties')->removeMethod('getReadOnlyProperties');
+            $constructor->addBody('$this');
+            foreach($readOnlyProperties as $property) {
+                $constructor->addBody('    ->addReadOnlyProperty(?)', [$property]);
+            }
+            $constructor->addBody(';');
         }
     }
 
