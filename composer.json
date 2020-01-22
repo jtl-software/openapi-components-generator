@@ -1,5 +1,5 @@
 {
-  "name": "jtl/openapi-component-generator-php",
+  "name": "jtl/openapi-components-generator",
   "type": "library",
   "license": "MIT",
   "autoload": {
