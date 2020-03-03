@@ -88,6 +88,7 @@ class PhpGenerator
     protected function addClassProperty(ClassType $class, NamedObjectType $objectType, ObjectTypeProperty $property): void
     {
         $defaultValue = $this->determineDefaultValue($property);
+        $isNullable = is_null($defaultValue);
         $commentDataType = '';
         $dataType = null;
         $isVariadic = false;
@@ -120,7 +121,7 @@ class PhpGenerator
             ->setBody(sprintf('return $this->%s;', $property->getName()))
             ->setReturnType($dataType)
             ->addComment(sprintf('@return %s', $commentDataType))
-            ->setReturnNullable(is_null($defaultValue));
+            ->setReturnNullable($isNullable);
 
         $setMethod = $class->addMethod(sprintf('set%s', ucfirst($property->getName())))
             ->setBody(sprintf('$this->%s = $%s;%sreturn $this;', $property->getName(), $property->getName(), PHP_EOL))
@@ -132,6 +133,7 @@ class PhpGenerator
 
         $setParam = $setMethod->addParameter($property->getName())
             ->setType($dataType)
+            ->setNullable($isNullable)
         ;
 
     }

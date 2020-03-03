@@ -9,7 +9,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "Jtl\\OpenApiComponentsGenerator\\": "tests/src/"
+      "Jtl\\OpenApiComponentsGenerator\\Test": "tests/src/"
     }
   },
   "require-dev": {
